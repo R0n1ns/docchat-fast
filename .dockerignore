@@ -1,11 +1,6 @@
-# Git
+# Version control
 .git
 .gitignore
-
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
 
 # Python
 __pycache__/
@@ -14,8 +9,6 @@ __pycache__/
 *.so
 .Python
 env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -27,20 +20,47 @@ lib64/
 parts/
 sdist/
 var/
-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache
 
-# Uploaded files (will be mounted as volume)
-uploads/
+# Virtual environment
+venv/
+ENV/
+.env
+.venv
 
-# IDE
+# Docker
+docker-compose*.yml
+.dockerignore
+.docker/
+
+# Documentation
+README.md
+LICENSE
+docs/
+
+# Local development and testing
+*.log
+.coverage
+htmlcov/
+.tox/
+tests/
+
+# Docker specific
+Dockerfile*
+
+# Database
+*.db
+*.sqlite3
+
+# IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# OS
+# OS specific files
 .DS_Store
 Thumbs.db
