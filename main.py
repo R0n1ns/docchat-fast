@@ -1,8 +1,10 @@
 import os
-from flask import Flask, jsonify, redirect, url_for
+import json
+from flask import Flask, jsonify, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_swagger_ui import get_swaggerui_blueprint
 
 # Set up database base class
 class Base(DeclarativeBase):
@@ -32,15 +34,37 @@ from api.v1.auth import auth_bp
 from api.v1.users import users_bp
 from api.v1.documents import documents_bp
 
+# Configure Swagger UI
+SWAGGER_URL = '/swagger'
+API_URL = '/static/swagger.json'
+
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': "Secure Document Management API"
+    }
+)
+
 # Register blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(documents_bp)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
+# Create static directory if it doesn't exist
+os.makedirs(os.path.join(app.root_path, 'static'), exist_ok=True)
+
+# Route to serve the Swagger specification
+@app.route('/static/swagger.json')
+def swagger_json():
+    with open('swagger.json', 'r', encoding='utf-8') as f:
+        return jsonify(json.load(f))
 
 # Basic routes
 @app.route('/')
 def index():
-    return redirect(url_for('api_docs'))
+    return redirect(url_for('swagger_ui.show'))
 
 @app.route('/api/docs')
 def api_docs():

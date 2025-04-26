@@ -1,0 +1,1238 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Secure Document Management API",
+    "description": "API для безопасного управления документами с шифрованием и проверкой целостности",
+    "version": "1.0.0"
+  },
+  "basePath": "/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "JWT токен в формате: Bearer {token}"
+    }
+  },
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Аутентификация"
+        ],
+        "summary": "Регистрация нового пользователя",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Данные пользователя",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "email",
+                "password",
+                "full_name"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "SecurePassword123"
+                },
+                "full_name": {
+                  "type": "string",
+                  "example": "Иван Иванов"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "manager",
+                    "admin"
+                  ],
+                  "default": "user",
+                  "example": "user"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Пользователь успешно создан",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "User created successfully"
+                },
+                "user_id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации или пользователь уже существует"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Аутентификация"
+        ],
+        "summary": "Авторизация пользователя и получение одноразового кода",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Учетные данные",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "email",
+                "password"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "SecurePassword123"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Код аутентификации отправлен",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Authentication code sent to your email"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверные учетные данные"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "tags": [
+          "Аутентификация"
+        ],
+        "summary": "Проверка одноразового кода и получение токенов",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Данные для проверки",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "email",
+                "code"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "123456"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Токены получены",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "access_token": {
+                  "type": "string"
+                },
+                "refresh_token": {
+                  "type": "string"
+                },
+                "token_type": {
+                  "type": "string",
+                  "example": "bearer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный код"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "Аутентификация"
+        ],
+        "summary": "Обновление токена доступа",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Токен обновления",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "refresh_token"
+              ],
+              "properties": {
+                "refresh_token": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Новые токены получены",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "access_token": {
+                  "type": "string"
+                },
+                "refresh_token": {
+                  "type": "string"
+                },
+                "token_type": {
+                  "type": "string",
+                  "example": "bearer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный или просроченный токен обновления"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Аутентификация"
+        ],
+        "summary": "Выход из системы (аннулирование токена обновления)",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Токен обновления",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "refresh_token"
+              ],
+              "properties": {
+                "refresh_token": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный выход из системы",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Logged out successfully"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный токен"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "Пользователи"
+        ],
+        "summary": "Получение информации о текущем пользователе",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о пользователе",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "email": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "full_name": {
+                  "type": "string",
+                  "example": "Иван Иванов"
+                },
+                "role": {
+                  "type": "string",
+                  "example": "user"
+                },
+                "is_active": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updated_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Пользователи"
+        ],
+        "summary": "Обновление информации о текущем пользователе",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Данные для обновления",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "full_name": {
+                  "type": "string",
+                  "example": "Иван Петров"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "NewSecurePassword123"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно обновлен",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "User updated successfully"
+                },
+                "user_id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "Пользователи"
+        ],
+        "summary": "Получение списка всех пользователей (только для менеджеров/админов)",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "description": "Номер страницы",
+            "type": "integer",
+            "default": 1
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "description": "Количество записей на странице",
+            "type": "integer",
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список пользователей",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "users": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "full_name": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string"
+                      },
+                      "is_active": {
+                        "type": "boolean"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                },
+                "pages": {
+                  "type": "integer"
+                },
+                "current_page": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "403": {
+            "description": "Нет прав доступа"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "tags": [
+          "Пользователи"
+        ],
+        "summary": "Получение информации о пользователе по ID (только для менеджеров/админов)",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "description": "ID пользователя",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о пользователе",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "full_name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "is_active": {
+                  "type": "boolean"
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updated_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "403": {
+            "description": "Нет прав доступа"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Пользователи"
+        ],
+        "summary": "Обновление пользователя по ID (только для админов)",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "description": "ID пользователя",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Данные для обновления",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "full_name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "manager",
+                    "admin"
+                  ]
+                },
+                "is_active": {
+                  "type": "boolean"
+                },
+                "password": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно обновлен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "403": {
+            "description": "Нет прав доступа"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Пользователи"
+        ],
+        "summary": "Деактивация пользователя по ID (только для админов)",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "description": "ID пользователя",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно деактивирован"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "403": {
+            "description": "Нет прав доступа"
+          },
+          "404": {
+            "description": "Пользователь не найден"
+          }
+        }
+      }
+    },
+    "/api/v1/documents": {
+      "post": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Создание нового документа",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "file",
+            "type": "file",
+            "description": "Файл документа",
+            "required": true
+          },
+          {
+            "in": "formData",
+            "name": "title",
+            "type": "string",
+            "description": "Название документа",
+            "required": true
+          },
+          {
+            "in": "formData",
+            "name": "description",
+            "type": "string",
+            "description": "Описание документа"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Документ успешно создан",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "document_id": {
+                  "type": "integer"
+                },
+                "version_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Получение списка документов с пагинацией и фильтрацией",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "type": "integer",
+            "description": "Номер страницы",
+            "default": 1
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "type": "integer",
+            "description": "Количество записей на странице",
+            "default": 10
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "type": "string",
+            "description": "Фильтр по названию (частичное совпадение)"
+          },
+          {
+            "in": "query",
+            "name": "creator_id",
+            "type": "integer",
+            "description": "Фильтр по ID создателя"
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "type": "string",
+            "description": "Поле для сортировки",
+            "default": "created_at",
+            "enum": [
+              "created_at",
+              "updated_at",
+              "title"
+            ]
+          },
+          {
+            "in": "query",
+            "name": "sort_order",
+            "type": "string",
+            "description": "Порядок сортировки",
+            "default": "desc",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список документов",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "documents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "filename": {
+                        "type": "string"
+                      },
+                      "content_type": {
+                        "type": "string"
+                      },
+                      "creator_id": {
+                        "type": "integer"
+                      },
+                      "current_version_id": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                },
+                "pages": {
+                  "type": "integer"
+                },
+                "current_page": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Получение информации о документе по ID со всеми версиями",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID документа"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о документе",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "document": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "filename": {
+                      "type": "string"
+                    },
+                    "content_type": {
+                      "type": "string"
+                    },
+                    "creator_id": {
+                      "type": "integer"
+                    },
+                    "current_version_id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                },
+                "versions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "version_number": {
+                        "type": "integer"
+                      },
+                      "filename": {
+                        "type": "string"
+                      },
+                      "content_type": {
+                        "type": "string"
+                      },
+                      "file_size": {
+                        "type": "integer"
+                      },
+                      "file_hash": {
+                        "type": "string"
+                      },
+                      "prev_hash": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "user_id": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Документ не найден"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Обновление метаданных документа или добавление новой версии",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json",
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID документа"
+          },
+          {
+            "in": "formData",
+            "name": "file",
+            "type": "file",
+            "description": "Файл новой версии документа"
+          },
+          {
+            "in": "formData",
+            "name": "title",
+            "type": "string",
+            "description": "Новое название документа"
+          },
+          {
+            "in": "formData",
+            "name": "description",
+            "type": "string",
+            "description": "Новое описание документа"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Документ успешно обновлен"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Документ не найден"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Пометить документ как удаленный (мягкое удаление)",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID документа"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Документ успешно удален",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "document_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Документ не найден"
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}/download": {
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Скачивание текущей версии документа",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID документа"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Файл документа"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Документ не найден"
+          },
+          "500": {
+            "description": "Ошибка при скачивании файла"
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}/versions/{version_id}": {
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Скачивание конкретной версии документа",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID документа"
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID версии"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Файл документа"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Документ или версия не найдены"
+          },
+          "500": {
+            "description": "Ошибка при скачивании файла"
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}/verify": {
+      "get": {
+        "tags": [
+          "Документы"
+        ],
+        "summary": "Проверка целостности документа путем проверки цепочки хешей",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "type": "integer",
+            "required": true,
+            "description": "ID документа"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Результат проверки",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "verified": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "versions_count": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Документ не найден"
+          }
+        }
+      }
+    }
+  }
+}
