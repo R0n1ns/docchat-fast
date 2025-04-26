@@ -23,8 +23,15 @@ COPY . .
 # Create uploads directory if not exists
 RUN mkdir -p uploads
 
+# Make entrypoint script executable
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 # Expose the port
 EXPOSE 5000
+
+# Set the entrypoint
+ENTRYPOINT ["./entrypoint.sh"]
 
 # Command to run the application
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--reload", "main:app"]
