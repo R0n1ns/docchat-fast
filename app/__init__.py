@@ -10,8 +10,8 @@ from app.core.config import settings
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
-        openapi_url=f"{settingsNone.API_V1_STR}/openapi.json",
-        docs_url=,
+        openapi_url=f"{settings.API_V1_STR}/openapi.json",
+        docs_url=None,
         redoc_url=None,
     )
 
