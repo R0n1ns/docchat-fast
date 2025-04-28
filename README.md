@@ -149,4 +149,24 @@
     <li><strong>Нагрузочное тестирование:</strong> Тестирование устойчивости системы.</li>
     <li><strong>Документирование проекта:</strong> Техническая документация, руководства пользователей.</li>
 </ol>
+
+<h1>Запуск проекта</h1>
+
+<h2>С использованием Docker (рекомендуется)</h2>
+<ol>
+    <li>Убедитесь, что у вас установлены <strong>Docker</strong> и <strong>Docker Compose</strong>.</li>
+    <li>Клонируйте репозиторий:</li>
+    <li><code>git clone &lt;repository-url&gt;</code></li>
+    <li><code>cd &lt;repository-directory&gt;</code></li>
+    <li>Запустите приложение с помощью <code>docker-compose</code>.</li>
+    <li>Приложение будет доступно по адресам:</li>
+</ol>
+
+<div class="links">
+    <ul>
+        <li><strong>API:</strong> <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></li>
+        <li><strong>Swagger UI:</strong> <a href="http://localhost:5000/swagger" target="_blank">http://localhost:5000/swagger</a></li>
+        <li><strong>Adminer (управление БД):</strong> <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></li>
+    </ul>
+</div>
 </div>
