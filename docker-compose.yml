@@ -8,9 +8,10 @@ services:
     volumes:
       - ./uploads:/app/uploads
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/document_management
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/document_management
+#      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/document_management
       - SECRET_KEY=dev_key_change_in_production
-      - ENCRYPTION_KEY=dev_encryption_key_change_in_prod
+      - ENCRYPTION_KEY=12345678901234567890123456789012
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=admin
     ports:
@@ -24,7 +25,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=document_management
-    
+
   adminer:
     image: adminer
     restart: always
@@ -32,6 +33,21 @@ services:
       - db
     ports:
       - "8080:8080"
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_BUCKET_NAME: documents
+    ports:
+      - "9000:9000"   # API порт
+      - "9001:9001"   # Web UI порт
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  minio_data:
