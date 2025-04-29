@@ -165,7 +165,6 @@
 <div class="links">
     <ul>
         <li><strong>API:</strong> <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></li>
-        <li><strong>Swagger UI:</strong> <a href="http://localhost:5000/swagger" target="_blank">http://localhost:5000/swagger</a></li>
         <li><strong>Adminer (управление БД):</strong> <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></li>
     </ul>
 </div>
