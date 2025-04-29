@@ -23,10 +23,6 @@ COPY . .
 # Create uploads directory if not exists
 RUN mkdir -p uploads
 
-## Make entrypoint script executable
-#COPY entrypoint.sh .
-#RUN chmod +x entrypoint.sh
-
 # Expose the port
 EXPOSE 5000
 

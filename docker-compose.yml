@@ -47,6 +47,22 @@ services:
       - minio_data:/data
     restart: unless-stopped
 
+#  nginx:
+#    image: nginx:1.23-alpine
+#    restart: always
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#      - ./static:/app/static:ro
+#      - uploads_data:/app/uploads:ro
+#    ports:
+#      - "80:80"
+#      - "443:443"  # Для HTTPS
+#    depends_on:
+#      - web
+#    networks:
+#      - app-network
+
+
 volumes:
   postgres_data:
   minio_data:
