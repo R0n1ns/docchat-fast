@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    volumes:
+      - ./:/app  # Монтируем локальную директорию в контейнер для разработки
+    ports:
+      - "5000:5000"  # Маппинг портов для локальной разработки
+    environment:
+      - FLASK_DEBUG=1  # Включаем режим отладки для разработки
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/document_management
+    env_file:
+      - .env  # Используем .env файл для переменных окружения
+
+  db:
+    ports:
+      - "5432:5432"  # Открываем порт для доступа к БД с хоста
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data/  # Отдельный том для данных БД в режиме разработки
+
+volumes:
+  postgres_data_dev:  # Определяем новый том для режима разработки
