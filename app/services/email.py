@@ -34,16 +34,17 @@ async def send_email(
     message.attach(MIMEText(html_template, "html"))
     
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            if settings.SMTP_TLS:
-                server.starttls()
-            if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(
-                settings.EMAILS_FROM_EMAIL, 
-                email_to, 
-                message.as_string()
-            )
+        print(html_template)
+        # with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        #     if settings.SMTP_TLS:
+        #         server.starttls()
+        #     if settings.SMTP_USER and settings.SMTP_PASSWORD:
+        #         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        #     server.sendmail(
+        #         settings.EMAILS_FROM_EMAIL,
+        #         email_to,
+        #         message.as_string()
+        #     )
         logger.info(f"Email sent to {email_to}")
         return True
     except Exception as e:

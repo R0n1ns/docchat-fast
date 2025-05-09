@@ -48,6 +48,8 @@ def encrypt_file(file_content: bytes) -> tuple[bytes, bytes]:
     Returns (encrypted_content, nonce)
     """
     nonce = os.urandom(12)  # 96-bit nonce for GCM
+    # print(settings.ENCRYPTION_KEY)
+    # print(len(settings.ENCRYPTION_KEY))
     aesgcm = AESGCM(settings.ENCRYPTION_KEY)
     encrypted_content = aesgcm.encrypt(nonce, file_content, None)
     return encrypted_content, nonce
@@ -56,6 +58,8 @@ def decrypt_file(encrypted_content: bytes, nonce: bytes) -> bytes:
     """
     Decrypts file content using AES-256-GCM.
     """
+    # print(settings.ENCRYPTION_KEY)
+    # print(len(settings.ENCRYPTION_KEY))
     aesgcm = AESGCM(settings.ENCRYPTION_KEY)
     decrypted_content = aesgcm.decrypt(nonce, encrypted_content, None)
     return decrypted_content

@@ -21,6 +21,7 @@ async def init_minio():
     """
     Initialize MinIO connection and create bucket if it doesn't exist.
     """
+    print(settings.MINIO_ENDPOINT)
     async with session.client(
         's3',
         endpoint_url=f"{'https' if settings.MINIO_SECURE else 'http'}://{settings.MINIO_ENDPOINT}",
@@ -50,6 +51,7 @@ async def upload_file(file_content: bytes, file_path: str) -> tuple[str, bytes, 
     file_hash = hashlib.sha256(file_content).hexdigest()
     
     # Upload to MinIO
+    print(settings.MINIO_ENDPOINT)
     async with session.client(
         's3',
         endpoint_url=f"{'https' if settings.MINIO_SECURE else 'http'}://{settings.MINIO_ENDPOINT}",
@@ -79,10 +81,10 @@ async def get_file(file_path: str, nonce_hex: str) -> Optional[bytes]:
                 Key=file_path
             )
             encrypted_content = await response['Body'].read()
-            
+
             # Convert hex nonce back to bytes
             nonce = bytes.fromhex(nonce_hex)
-            
+
             # Decrypt content
             decrypted_content = decrypt_file(encrypted_content, nonce)
             return decrypted_content

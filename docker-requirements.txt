@@ -18,3 +18,5 @@ python-multipart==0.0.6
 requests==2.31.0
 uvicorn==0.23.2
 werkzeug==2.3.7
+pydantic_settings==2.9.1
+asyncpg==0.30.0

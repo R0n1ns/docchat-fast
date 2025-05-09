@@ -38,7 +38,6 @@ class DocumentVersion(Base):
     nonce = Column(String, nullable=False)  # For AES-GCM decryption
     file_hash = Column(String, nullable=False)
     prev_hash = Column(String, nullable=True)  # For integrity verification
-    metadata = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

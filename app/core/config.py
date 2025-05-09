@@ -1,13 +1,14 @@
+import base64
 import os
 from typing import Any, Dict, List, Optional, Union
-
-from pydantic import AnyHttpUrl, BaseSettings, PostgresDsn, validator
+from pydantic_settings import BaseSettings
+from pydantic import AnyHttpUrl, PostgresDsn, validator
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Secure Document Management"
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "your-secret-key-for-jwt")
-    ENCRYPTION_KEY: bytes = os.environ.get("ENCRYPTION_KEY", "a-32-byte-string-for-aes-encryption!").encode()
+    ENCRYPTION_KEY: bytes = base64.b64decode(os.getenv("ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MTIzNDU2"))  # это пример base64-строки на 32 байта
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
@@ -33,7 +34,7 @@ class Settings(BaseSettings):
         )
 
     # MinIO / S3
-    MINIO_ENDPOINT: str = os.environ.get("MINIO_ENDPOINT", "localhost:9000")
+    MINIO_ENDPOINT: str = os.environ.get("MINIO_ENDPOINT", "minio:9000")
     MINIO_ACCESS_KEY: str = os.environ.get("MINIO_ACCESS_KEY", "minioadmin")
     MINIO_SECRET_KEY: str = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
     MINIO_BUCKET_NAME: str = os.environ.get("MINIO_BUCKET_NAME", "documents")
@@ -62,7 +63,7 @@ class Settings(BaseSettings):
     # TOTP settings
     TOTP_ISSUER: str = "Secure Document Management"
     TOTP_DIGITS: int = 6
-    TOTP_INTERVAL: int = 30  # seconds
+    TOTP_INTERVAL: int = 300  # seconds
 
     class Config:
         case_sensitive = True

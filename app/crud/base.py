@@ -23,7 +23,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         Get a single record by id.
         """
-        result = await db.execute(select(self.model).filter(self.model.id == id))
+        result = await db.execute(select(self.model).filter(self.model.id == int(id)))
         return result.scalars().first()
 
     async def get_multi(

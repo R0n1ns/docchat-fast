@@ -24,7 +24,7 @@ async def create_document(
     file_size = len(file_content)
     
     # Generate unique storage path
-    storage_path = f"documents/{creator_id}/{uuid.uuid4()}"
+    storage_path = f"documents/{creator_id}/{uuid.uuid4()}".replace("-", "")
     
     # Upload file to MinIO
     object_path, nonce, file_hash = await upload_file(file_content, storage_path)

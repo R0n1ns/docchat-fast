@@ -29,9 +29,9 @@ RUN mkdir -p uploads
 
 # Expose the port
 EXPOSE 5000
-
-# Set the entrypoint
-ENTRYPOINT ["./entrypoint.sh"]
+#
+## Set the entrypoint
+#ENTRYPOINT ["./entrypoint.sh"]
 
 # Command to run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--reload", "main:app"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]

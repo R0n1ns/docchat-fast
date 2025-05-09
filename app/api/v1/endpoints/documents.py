@@ -1,4 +1,6 @@
 from typing import Any, List, Optional
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -124,13 +126,13 @@ async def download_document(
     # Get file from MinIO
     try:
         file_obj = await get_document_file(document_id=document_id, version_id=document.current_version_id)
-        
+        filename = document.filename
         # Return file as streaming response
         return StreamingResponse(
             file_obj,
             media_type=document.content_type,
             headers={
-                "Content-Disposition": f'attachment; filename="{document.filename}"'
+                "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"
             }
         )
     except Exception as e:

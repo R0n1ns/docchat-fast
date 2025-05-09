@@ -1,5 +1,5 @@
 import pyotp
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +25,7 @@ async def verify_refresh_token(db: AsyncSession, token: str) -> Optional[int]:
     Verify if refresh token is valid and return user_id if it is.
     """
     db_token = await token_crud.get_by_token(db, token=token)
-    if not db_token or not db_token.is_valid or db_token.expires_at < datetime.utcnow():
+    if not db_token or not db_token.is_valid or db_token.expires_at < datetime.now(timezone.utc):
         return None
     return db_token.user_id
 

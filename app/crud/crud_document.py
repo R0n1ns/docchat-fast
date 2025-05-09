@@ -41,7 +41,6 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             nonce=version_in.nonce,
             file_hash=version_in.file_hash,
             prev_hash=version_in.prev_hash,
-            metadata=version_in.metadata
         )
         db.add(version_obj)
         await db.flush()
@@ -90,7 +89,6 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
             nonce=version_in.nonce,
             file_hash=version_in.file_hash,
             prev_hash=version_in.prev_hash,
-            metadata=version_in.metadata
         )
         db.add(version_obj)
         await db.flush()

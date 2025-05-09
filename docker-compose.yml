@@ -8,11 +8,12 @@ services:
     volumes:
       - ./uploads:/app/uploads
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/document_management
-      - SECRET_KEY=dev_key_change_in_production
-      - ENCRYPTION_KEY=12345678901234567890123456789012
-      - ADMIN_EMAIL=admin@example.com
-      - ADMIN_PASSWORD=admin
+      DATABASE_URL : postgresql+asyncpg://postgres:postgres@db:5432/document_management
+      SECRET_KEY : dev_key_change_in_production
+      ENCRYPTION_KEY : Ri2L9wvJ4D44ijKWzoxkVn/2n+YMPDGA
+      ADMIN_EMAIL : admin@example.com
+      ADMIN_PASSWORD : admin
+      MINIO_ENDPOINT : "minio:9000"
     ports:
       - "5000:5000"
 

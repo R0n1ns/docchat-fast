@@ -11,10 +11,34 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
-        docs_url=None,
+        docs_url="/docs",
         redoc_url=None,
     )
 
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = get_openapi(
+            title=settings.PROJECT_NAME,
+            version="1.0.0",
+            description="Secure Document Management API",
+            routes=app.routes,
+        )
+        openapi_schema["components"]["securitySchemes"] = {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+        for path in openapi_schema["paths"].values():
+            for method in path.values():
+                method.setdefault("security", []).append({"BearerAuth": []})
+        app.openapi_schema = openapi_schema
+
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
     # Set up CORS middleware
     if settings.BACKEND_CORS_ORIGINS:
         app.add_middleware(
