@@ -3,7 +3,7 @@ from sqlalchemy import select, update, and_, or_, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
-from app.models.document import Document, DocumentVersion
+from app.models.document import Document, DocumentVersion, DocumentAccess
 from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentListFilter, DocumentVersionCreate
 
 
@@ -148,13 +148,22 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         db: AsyncSession,
         *,
         filters: DocumentListFilter,
+        user_id: int,
         skip: int = 0,
         limit: int = 100
     ) -> List[Document]:
         """
         Search for documents based on filters.
         """
-        query = select(Document).filter(Document.is_deleted == False)
+        query = select(Document).filter(
+            or_(
+                Document.creator_id == user_id,
+                Document.id.in_(
+                    select(DocumentAccess.document_id)
+                    .where(DocumentAccess.user_id == user_id)
+                )
+            )
+        )
         
         # Apply filters
         if filters.title:

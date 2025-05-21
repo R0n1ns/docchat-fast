@@ -214,10 +214,10 @@
           }
         },
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-]
+            {
+              "JWTBearerAuth": []
+            }
+        ]
       }
     },
     "/api/v1/users/me": {
@@ -241,10 +241,10 @@
           }
         },
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-]
+            {
+              "JWTBearerAuth": []
+            }
+        ]
       },
       "patch": {
         "tags": [
@@ -286,10 +286,10 @@
           }
         },
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-]
+            {
+              "JWTBearerAuth": []
+            }
+        ]
       }
     },
     "/api/v1/users": {
@@ -301,10 +301,10 @@
         "description": "Retrieve users. Admin only.",
         "operationId": "read_users_api_v1_users_get",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "skip",
@@ -362,10 +362,10 @@
         "description": "Create new user. Admin only.",
         "operationId": "create_user_api_v1_users_post",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -409,10 +409,10 @@
         "description": "Get a specific user by id.",
         "operationId": "read_user_by_id_api_v1_users__user_id__get",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "user_id",
@@ -455,10 +455,10 @@
         "description": "Update a user. Admin only.",
         "operationId": "update_user_api_v1_users__user_id__patch",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "user_id",
@@ -511,10 +511,10 @@
         "description": "Delete a user. Admin only.",
         "operationId": "delete_user_api_v1_users__user_id__delete",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "user_id",
@@ -559,10 +559,10 @@
         "description": "Create new document.",
         "operationId": "create_new_document_api_v1_documents_post",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "title",
@@ -631,10 +631,10 @@
         "description": "Retrieve documents.",
         "operationId": "read_documents_api_v1_documents_get",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "skip",
@@ -760,10 +760,10 @@
         "description": "Get document by ID.",
         "operationId": "read_document_api_v1_documents__document_id__get",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "document_id",
@@ -806,10 +806,10 @@
         "description": "Update document information.",
         "operationId": "update_document_info_api_v1_documents__document_id__patch",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "document_id",
@@ -862,10 +862,10 @@
         "description": "Delete a document.",
         "operationId": "delete_document_api_v1_documents__document_id__delete",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "document_id",
@@ -910,10 +910,10 @@
         "description": "Download document file.",
         "operationId": "download_document_api_v1_documents__document_id__download_get",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "document_id",
@@ -958,10 +958,10 @@
         "description": "Upload a new version of an existing document.",
         "operationId": "upload_new_version_api_v1_documents__document_id__upload_post",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "document_id",
@@ -1016,10 +1016,10 @@
         "description": "Verify document integrity using the hash chain.",
         "operationId": "verify_integrity_api_v1_documents__document_id__verify_get",
         "security": [
-  {
-    "JWTBearerAuth": []
-  }
-],
+            {
+              "JWTBearerAuth": []
+            }
+        ],
         "parameters": [
           {
             "name": "document_id",
@@ -1053,6 +1053,184 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/documents/{document_id}/share": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Share Document",
+        "operationId": "share_document_api_v1_documents__document_id__share_post",
+        "security": [
+            {
+              "JWTBearerAuth": []
+            }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentAccessCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}/share/{user_id}": {
+      "delete": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Revoke Access",
+        "operationId": "revoke_access_api_v1_documents__document_id__share__user_id__delete",
+        "security": [
+            {
+              "JWTBearerAuth": []
+            }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentAccessCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/1/access_list": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Access List",
+        "operationId": "get_access_list_api_v1_documents__document_id__access_get",
+        "parameters": [
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentAccessInDB"
+                  },
+                  "title": "Response Get Access List Api V1 Documents  Document Id  Access Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/env/env": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Get Environment Vars",
+        "description": "Get exposed environment variables (Admin only)",
+        "operationId": "get_environment_vars_api_v1_env_env_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EnvVarsResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Environment Vars Api V1 Env Env Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+            {
+              "JWTBearerAuth": []
+            }
+        ]
       }
     }
   },
@@ -1160,6 +1338,52 @@
           "file"
         ],
         "title": "Body_upload_new_version_api_v1_documents__document_id__upload_post"
+      },
+      "DocumentAccessCreate": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "access_level": {
+            "type": "string",
+            "title": "Access Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "access_level"
+        ],
+        "title": "DocumentAccessCreate"
+      },
+      "DocumentAccessInDB": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "access_level": {
+            "type": "string",
+            "title": "Access Level"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "integer",
+            "title": "Document Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "access_level",
+          "id",
+          "document_id"
+        ],
+        "title": "DocumentAccessInDB"
       },
       "DocumentInDB": {
         "properties": {
@@ -1293,6 +1517,24 @@
         },
         "type": "object",
         "title": "DocumentUpdate"
+      },
+      "EnvVarsResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "value"
+        ],
+        "title": "EnvVarsResponse"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1567,12 +1809,12 @@
       }
     },
     "securitySchemes": {
-  "JWTBearerAuth": {
-    "type": "http",
-    "scheme": "bearer",
-    "bearerFormat": "JWT",
-    "description": "JWT токен, полученный после авторизации"
-  }
-}
+      "JWTBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT токен, полученный после авторизации"
+      }
+    }
   }
 }

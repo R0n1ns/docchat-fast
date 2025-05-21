@@ -128,6 +128,7 @@ async def remove_document(
 async def search_documents(
     db: AsyncSession,
     filters: DocumentListFilter,
+    user_id: int,
     skip: int = 0,
     limit: int = 100
 ) -> List[Document]:
@@ -137,8 +138,10 @@ async def search_documents(
     return await document_crud.search_documents(
         db=db,
         filters=filters,
+        user_id=user_id,
         skip=skip,
-        limit=limit
+        limit=limit,
+
     )
 
 async def verify_document_integrity(

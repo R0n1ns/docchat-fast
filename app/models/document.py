@@ -22,6 +22,7 @@ class Document(Base):
     # Relationships
     creator = relationship("User", back_populates="documents")
     versions = relationship("DocumentVersion", back_populates="document")
+    access_list = relationship("DocumentAccess", back_populates="document")
 
 
 class DocumentVersion(Base):
@@ -43,3 +44,16 @@ class DocumentVersion(Base):
     # Relationships
     document = relationship("Document", back_populates="versions")
     user = relationship("User")
+
+
+class DocumentAccess(Base):
+    __tablename__ = "document_access"
+
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    access_level = Column(String, default='read')  # read/write
+
+    document = relationship("Document", back_populates="access_list")
+    user = relationship("User")
+

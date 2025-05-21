@@ -78,3 +78,20 @@ class DocumentListFilter(BaseModel):
     creator_id: Optional[int] = None
     sort_by: str = "created_at"
     sort_order: str = "desc"
+
+
+class DocumentAccessBase(BaseModel):
+    user_id: int
+    access_level: str
+
+
+class DocumentAccessCreate(DocumentAccessBase):
+    pass
+
+
+class DocumentAccessInDB(DocumentAccessBase):
+    id: int
+    document_id: int
+
+    class Config:
+        orm_mode = True

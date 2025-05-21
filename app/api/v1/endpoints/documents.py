@@ -4,11 +4,14 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.util import greenlet_spawn
 
 from app.api.dependencies import get_db, get_current_active_user, get_current_active_manager, get_current_active_admin
 from app.crud.crud_document import document_crud
+from app.crud.crud_document_access import document_access_crud
 from app.models.user import User
-from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentInDB, DocumentListFilter
+from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentInDB, DocumentListFilter, DocumentAccessCreate, \
+    DocumentAccessInDB
 from app.services.document import create_document, get_document_by_id, update_document, remove_document, search_documents, verify_document_integrity
 from app.services.minio import get_document_file
 
@@ -69,7 +72,8 @@ async def read_documents(
         db=db,
         filters=filters,
         skip=skip,
-        limit=limit
+        limit=limit,
+        user_id=current_user.id
     )
     return documents
 
@@ -117,7 +121,12 @@ async def download_document(
         )
     
     # Check if user has access to this document
-    if current_user.role == "user" and document.creator_id != current_user.id:
+    has_access = (
+            document.creator_id == current_user.id or
+            await greenlet_spawn(lambda: any(access.user_id == current_user.id for access in document.access_list))
+    )
+
+    if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions to access this document",
@@ -272,3 +281,51 @@ async def verify_integrity(
         "is_valid": is_valid,
         "message": message
     }
+
+
+@router.post("/{document_id}/share", status_code=status.HTTP_201_CREATED)
+async def share_document(
+        *,
+        db: AsyncSession = Depends(get_db),
+        document_id: int,
+        access_in: DocumentAccessCreate,
+        current_user: User = Depends(get_current_active_user),
+):
+    document = await get_document_by_id(db, document_id)
+    if document.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only owner can share documents")
+
+    return await document_access_crud.grant_access(
+        db,
+        document_id=document_id,
+        user_id=access_in.user_id,
+        access_level=access_in.access_level
+    )
+
+
+@router.delete("/{document_id}/share/{user_id}")
+async def revoke_access(
+        *,
+        db: AsyncSession = Depends(get_db),
+        document_id: int,
+        access_in: DocumentAccessCreate,
+        current_user: User = Depends(get_current_active_user)):
+    # Аналогичная проверка прав
+    await document_access_crud.revoke_access(db, document_id=document_id, user_id=current_user.id)
+    return {"status": "success"}
+
+
+@router.get("/{document_id}/access_list")
+async def get_my_accessible_documents(
+        *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Получить все документы, к которым у текущего пользователя есть доступ
+    """
+    # Получаем все документы, где пользователь имеет доступ
+    accessible_documents = await document_access_crud.get_user_accessible_documents(
+        db, user_id=current_user.id
+    )
+    return accessible_documents

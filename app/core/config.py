@@ -1,6 +1,6 @@
 import base64
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, ClassVar
 from pydantic_settings import BaseSettings
 from pydantic import AnyHttpUrl, PostgresDsn, validator
 
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "your-secret-key-for-jwt")
     ENCRYPTION_KEY: bytes = base64.b64decode(os.getenv("ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MTIzNDU2"))  # это пример base64-строки на 32 байта
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # PostgreSQL
@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     TOTP_DIGITS: int = 6
     TOTP_INTERVAL: int = 300  # seconds
 
+    EXPOSED_ENV_VARS: ClassVar[List[str]] = [
+        "TOTP_INTERVAL",
+        "TOTP_DIGITS",
+        "ACCESS_TOKEN_EXPIRE_MINUTES",
+        "REFRESH_TOKEN_EXPIRE_DAYS"
+    ]
     class Config:
         case_sensitive = True
 
