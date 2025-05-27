@@ -1202,7 +1202,7 @@
         }
       }
     },
-    "/api/v1/env/env": {
+    "/api/v1/system/env": {
       "get": {
         "tags": [
           "System"
