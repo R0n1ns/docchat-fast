@@ -170,7 +170,7 @@ class LoginWindow(QWidget):
 
             # Импорт главного окна через абсолютный путь
             from widgets.dashboard import DashboardWindow  # Исправленный импорт
-            self.dashboard = DashboardWindow(self.api)
+            self.dashboard = DashboardWindow(self.api,user_info)
             self.dashboard.show()
 
         except APIError as e:

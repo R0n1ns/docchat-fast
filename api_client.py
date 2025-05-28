@@ -1,3 +1,6 @@
+import mimetypes
+import os
+
 import requests
 from typing import Optional, Dict, List, Any
 
@@ -135,3 +138,67 @@ class APIClient:
             return False
     def update_base_url(self,server_url):
         self.base_url = server_url
+
+    def upload_document(self, file_path: str, title: str) -> Dict:
+        # Определяем MIME-тип файла
+        content_type, _ = mimetypes.guess_type(file_path)
+        if content_type is None:
+            content_type = 'application/octet-stream'
+
+        # Получаем имя файла из пути
+        filename = os.path.basename(file_path)
+
+        with open(file_path, 'rb') as f:
+            files = {'file': (filename, f, content_type)}
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Accept": "application/json"
+            }
+            response = self.session.post(
+                f"{self.base_url}/api/v1/documents?title={title}",
+                files=files,
+                headers=headers
+            )
+        return self._handle_response(response)
+
+    def download_document(self, document_id: int) -> bytes:
+        response = self.session.get(
+            f"{self.base_url}/api/v1/documents/{document_id}/download",
+            headers=self._get_headers()
+        )
+        try:
+            response.raise_for_status()
+            return response.content
+        except requests.exceptions.HTTPError as e:
+            raise APIError(f"Download failed: {str(e)}", response.status_code)
+
+    def verify_document_integrity(self, document_id: int) -> dict:
+        response = self.session.get(
+            f"{self.base_url}/api/v1/documents/{document_id}/verify",
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)
+
+    def update_document_metadata(self, document_id: int, metadata: dict) -> dict:
+        response = self.session.patch(
+            f"{self.base_url}/api/v1/documents/{document_id}",
+            json=metadata,
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)
+
+    def delete_document(self, document_id: int) -> dict:
+        response = self.session.delete(
+            f"{self.base_url}/api/v1/documents/{document_id}",
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)
+
+    def logout(self) -> None:
+        if self.refresh_token:
+            response = self.session.post(
+                f"{self.base_url}/api/v1/auth/logout",
+                json={"refresh_token": self.refresh_token},
+                headers=self._get_headers()
+            )
+            self._handle_response(response)
