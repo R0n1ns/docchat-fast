@@ -32,18 +32,24 @@ async def update_user_me(
     user = await user_crud.update(db, db_obj=current_user, obj_in=user_in)
     return user
 
+
 @router.get("", response_model=List[UserInDB])
 async def read_users(
-    db: AsyncSession = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100,
-    _: User = Depends(get_current_active_admin),
+        db: AsyncSession = Depends(get_db),
+        skip: int = 0,
+        limit: int = 100,
+        current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
     Retrieve users. Admin only.
     """
+    # Получаем всех пользователей
     users = await user_crud.get_multi(db, skip=skip, limit=limit)
-    return users
+
+    # Фильтруем, исключая текущего пользователя
+    filtered_users = [user for user in users if user.id != current_user.id]
+
+    return filtered_users
 
 @router.post("", response_model=UserInDB)
 async def create_user(
