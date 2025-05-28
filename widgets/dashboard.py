@@ -1,16 +1,192 @@
 import json
+import os
+import mimetypes
 
 import requests
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QLabel, QTabWidget,
     QTableWidget, QTableWidgetItem, QPushButton, QLineEdit, QComboBox,
     QGroupBox, QFormLayout, QHBoxLayout, QTextEdit, QMessageBox, QFileDialog,
-    QInputDialog, QHeaderView
+    QInputDialog, QHeaderView, QDialog, QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 
 from api_client import APIError
+
+
+class DocumentViewWindow(QDialog):
+    def __init__(self, api, document_data, parent=None):
+        super().__init__(parent)
+        self.api = api
+        self.document_data = document_data
+        self.setWindowTitle(f"Просмотр документа: {document_data.get('title', '')}")
+        self.setGeometry(300, 300, 800, 600)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        # Заголовок
+        title = QLabel(f"Документ: {self.document_data.get('title', '')}")
+        title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        # Метаданные документа
+        meta_group = QGroupBox("Метаданные документа")
+        meta_layout = QFormLayout()
+
+        self.meta_title = QLineEdit(self.document_data.get("title", ""))
+        self.meta_description = QTextEdit(self.document_data.get("description", "") or "")
+        self.meta_description.setMaximumHeight(80)
+
+        # Только для чтения
+        self.meta_id = QLineEdit(str(self.document_data.get("id", "")))
+        self.meta_id.setReadOnly(True)
+        self.meta_filename = QLineEdit(self.document_data.get("filename", ""))
+        self.meta_filename.setReadOnly(True)
+        self.meta_content_type = QLineEdit(self.document_data.get("content_type", ""))
+        self.meta_content_type.setReadOnly(True)
+        self.meta_created_at = QLineEdit(self.document_data.get("created_at", ""))
+        self.meta_created_at.setReadOnly(True)
+        self.meta_version = QLineEdit(str(self.document_data.get("current_version_id", "") or ""))
+        self.meta_version.setReadOnly(True)
+        self.meta_creator = QLineEdit(str(self.document_data.get("creator_id", "")))
+        self.meta_creator.setReadOnly(True)
+
+        meta_layout.addRow("ID:", self.meta_id)
+        meta_layout.addRow("Название:", self.meta_title)
+        meta_layout.addRow("Описание:", self.meta_description)
+        meta_layout.addRow("Имя файла:", self.meta_filename)
+        meta_layout.addRow("Тип контента:", self.meta_content_type)
+        meta_layout.addRow("Дата создания:", self.meta_created_at)
+        meta_layout.addRow("Версия:", self.meta_version)
+        meta_layout.addRow("Создатель:", self.meta_creator)
+
+        meta_group.setLayout(meta_layout)
+        layout.addWidget(meta_group)
+
+        # Кнопки действий
+        buttons_layout = QHBoxLayout()
+
+        self.download_btn = QPushButton("Скачать")
+        self.download_btn.setIcon(QIcon.fromTheme("document-save"))
+        self.download_btn.clicked.connect(self.download_document)
+        buttons_layout.addWidget(self.download_btn)
+
+        self.verify_btn = QPushButton("Проверить целостность")
+        self.verify_btn.setIcon(QIcon.fromTheme("document-edit-verify"))
+        self.verify_btn.clicked.connect(self.verify_document)
+        buttons_layout.addWidget(self.verify_btn)
+
+        self.delete_btn = QPushButton("Удалить")
+        self.delete_btn.setIcon(QIcon.fromTheme("edit-delete"))
+        self.delete_btn.clicked.connect(self.delete_document)
+        buttons_layout.addWidget(self.delete_btn)
+
+        self.upload_version_btn = QPushButton("Загрузить новую версию")
+        self.upload_version_btn.setIcon(QIcon.fromTheme("document-send"))
+        self.upload_version_btn.clicked.connect(self.upload_new_version)
+        buttons_layout.addWidget(self.upload_version_btn)
+
+        layout.addLayout(buttons_layout)
+
+        # Кнопки сохранения/закрытия
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
+        button_box.accepted.connect(self.save_metadata)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+        self.setLayout(layout)
+
+    def download_document(self):
+        try:
+            doc_id = self.document_data.get("id")
+            filename = self.document_data.get("filename", f"document_{doc_id}")
+
+            save_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Сохранить документ",
+                filename,
+                "Все файлы (*);;PDF (*.pdf);;Документы (*.doc *.docx);;Таблицы (*.xls *.xlsx)"
+            )
+
+            if not save_path:
+                return
+
+            file_data = self.api.download_document(doc_id)
+
+            if not file_data:
+                raise Exception("Пустые данные файла")
+
+            with open(save_path, "wb") as f:
+                f.write(file_data)
+
+            QMessageBox.information(self, "Успех", "Документ успешно скачан")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка скачивания документа: {str(e)}")
+
+    def verify_document(self):
+        try:
+            doc_id = self.document_data.get("id")
+            result = self.api.verify_document_integrity(doc_id)
+
+            if result.get("integrity_verified", False):
+                QMessageBox.information(self, "Проверка целостности", "Целостность документа подтверждена")
+            else:
+                QMessageBox.warning(self, "Проверка целостности", "Целостность документа нарушена")
+        except APIError as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка проверки целостности: {e.message}")
+
+    def delete_document(self):
+        confirm = QMessageBox.question(
+            self,
+            "Подтверждение удаления",
+            f"Вы действительно хотите удалить документ '{self.document_data.get('title')}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            doc_id = self.document_data.get("id")
+            self.api.delete_document(doc_id)
+            QMessageBox.information(self, "Успех", "Документ успешно удалён")
+            self.accept()  # Закрываем окно после удаления
+        except APIError as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка удаления документа: {e.message}")
+
+    def upload_new_version(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Выберите новую версию файла",
+            "",
+            "Все файлы (*);;PDF (*.pdf);;Документы (*.doc *.docx);;Таблицы (*.xls *.xlsx)"
+        )
+
+        if not file_path:
+            return
+
+        try:
+            doc_id = self.document_data.get("id")
+            self.api.upload_new_version(doc_id, file_path)
+            QMessageBox.information(self, "Успех", "Новая версия документа успешно загружена")
+        except APIError as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки новой версии: {e.message}")
+
+    def save_metadata(self):
+        try:
+            doc_id = self.document_data.get("id")
+            metadata = {
+                "title": self.meta_title.text(),
+                "description": self.meta_description.toPlainText()
+            }
+
+            self.api.update_document_metadata(doc_id, metadata)
+            QMessageBox.information(self, "Успех", "Метаданные документа успешно обновлены")
+        except APIError as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка обновления метаданных: {e.message}")
 
 
 class DashboardWindow(QMainWindow):
@@ -167,13 +343,12 @@ class DashboardWindow(QMainWindow):
 
         # Таблица документов
         self.doc_table = QTableWidget()
-        self.doc_table.setColumnCount(7)
+        self.doc_table.setColumnCount(8)  # Добавили столбец для действий
         self.doc_table.setHorizontalHeaderLabels([
-            "ID", "Название", "Описание", "Файл", "Тип", "Дата создания", "Версия"
+            "ID", "Название", "Описание", "Файл", "Тип", "Дата создания", "Версия", "Действия"
         ])
         self.doc_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.doc_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.doc_table.itemSelectionChanged.connect(self.document_selected)
         layout.addWidget(self.doc_table)
 
         # Кнопки действий
@@ -183,54 +358,7 @@ class DashboardWindow(QMainWindow):
         self.upload_btn.clicked.connect(self.upload_document)
         buttons_layout.addWidget(self.upload_btn)
 
-        self.upload_version_btn = QPushButton("Загрузить новую версию")
-        self.upload_version_btn.clicked.connect(self.upload_new_version)
-        buttons_layout.addWidget(self.upload_version_btn)
-
-        self.download_btn = QPushButton("Скачать")
-        self.download_btn.clicked.connect(self.download_document)
-        buttons_layout.addWidget(self.download_btn)
-
-        self.verify_btn = QPushButton("Проверить целостность")
-        self.verify_btn.clicked.connect(self.verify_document)
-        buttons_layout.addWidget(self.verify_btn)
-
-        self.delete_btn = QPushButton("Удалить")
-        self.delete_btn.clicked.connect(self.delete_document)
-        buttons_layout.addWidget(self.delete_btn)
-
         layout.addLayout(buttons_layout)
-
-        # Метаданные документа
-        meta_group = QGroupBox("Метаданные документа")
-        meta_layout = QFormLayout()
-
-        self.meta_title = QLineEdit()
-        self.meta_description = QTextEdit()
-        self.meta_description.setMaximumHeight(80)
-        self.meta_filename = QLineEdit()
-        self.meta_filename.setReadOnly(True)
-        self.meta_content_type = QLineEdit()
-        self.meta_content_type.setReadOnly(True)
-        self.meta_created_at = QLineEdit()
-        self.meta_created_at.setReadOnly(True)
-        self.meta_version = QLineEdit()
-        self.meta_version.setReadOnly(True)
-
-        meta_layout.addRow("Название:", self.meta_title)
-        meta_layout.addRow("Описание:", self.meta_description)
-        meta_layout.addRow("Имя файла:", self.meta_filename)
-        meta_layout.addRow("Тип контента:", self.meta_content_type)
-        meta_layout.addRow("Дата создания:", self.meta_created_at)
-        meta_layout.addRow("Версия:", self.meta_version)
-
-        meta_group.setLayout(meta_layout)
-        layout.addWidget(meta_group)
-
-        # Кнопка сохранения метаданных
-        save_meta_btn = QPushButton("Сохранить метаданные")
-        save_meta_btn.clicked.connect(self.save_metadata)
-        layout.addWidget(save_meta_btn)
 
     def init_log_tab(self):
         layout = QVBoxLayout(self.tab_log)
@@ -295,8 +423,25 @@ class DashboardWindow(QMainWindow):
             self.doc_table.setItem(i, 5, QTableWidgetItem(doc.get("created_at", "")))
             self.doc_table.setItem(i, 6, QTableWidgetItem(str(doc.get("current_version_id", "")) or ""))
 
+            # Кнопка "Просмотр"
+            view_btn = QPushButton("Просмотр")
+            view_btn.setProperty("doc_id", doc["id"])
+            view_btn.clicked.connect(self.open_document_view)
+            self.doc_table.setCellWidget(i, 7, view_btn)
+
         # Автонастройка ширины столбцов
         self.doc_table.resizeColumnsToContents()
+
+    def open_document_view(self):
+        btn = self.sender()
+        doc_id = btn.property("doc_id")
+
+        # Найти документ по ID
+        doc = next((d for d in self.documents if d["id"] == doc_id), None)
+
+        if doc:
+            view_dialog = DocumentViewWindow(self.api, doc, self)
+            view_dialog.exec()
 
     def filter_documents(self):
         text = self.search_input.text().lower()
@@ -319,41 +464,6 @@ class DashboardWindow(QMainWindow):
 
         self.filtered_documents = filtered
         self.display_documents(filtered)
-
-    def document_selected(self):
-        selected = self.doc_table.selectedItems()
-        if not selected:
-            self.current_doc = None
-            self.clear_metadata_fields()
-            return
-
-        row = selected[0].row()
-        if row < len(self.filtered_documents):
-            self.current_doc = self.filtered_documents[row]
-            self.load_metadata_fields()
-        else:
-            self.current_doc = None
-            self.clear_metadata_fields()
-
-    def load_metadata_fields(self):
-        if not self.current_doc:
-            self.clear_metadata_fields()
-            return
-
-        self.meta_title.setText(self.current_doc.get("title", ""))
-        self.meta_description.setText(self.current_doc.get("description", "") or "")
-        self.meta_filename.setText(self.current_doc.get("filename", ""))
-        self.meta_content_type.setText(self.current_doc.get("content_type", ""))
-        self.meta_created_at.setText(self.current_doc.get("created_at", ""))
-        self.meta_version.setText(str(self.current_doc.get("current_version_id", "") or ""))
-
-    def clear_metadata_fields(self):
-        self.meta_title.clear()
-        self.meta_description.clear()
-        self.meta_filename.clear()
-        self.meta_content_type.clear()
-        self.meta_created_at.clear()
-        self.meta_version.clear()
 
     def upload_document(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -386,123 +496,6 @@ class DashboardWindow(QMainWindow):
             if "500" in e.message:
                 error_msg += "\n(Серверная ошибка, проверьте логи сервера)"
             self.show_error(error_msg)
-
-    def upload_new_version(self):
-        if not self.current_doc:
-            self.show_error("Выберите документ для обновления")
-            return
-
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Выберите новую версию файла",
-            "",
-            "Все файлы (*);;PDF (*.pdf);;Документы (*.doc *.docx);;Таблицы (*.xls *.xlsx)"
-        )
-
-        if not file_path:
-            return
-
-        try:
-            doc_id = self.current_doc.get("id")
-            self.api.upload_new_version(doc_id, file_path)
-            self.load_documents()
-            self.log_event(f"Загружена новая версия документа ID: {doc_id}")
-            self.show_notification("Новая версия документа успешно загружена")
-        except APIError as e:
-            self.show_error(f"Ошибка загрузки новой версии: {e.message}")
-
-    def download_document(self):
-        if not self.current_doc:
-            self.show_error("Выберите документ для скачивания")
-            return
-
-        try:
-            doc_id = self.current_doc.get("id")
-            filename = self.current_doc.get("filename", f"document_{doc_id}")
-
-            save_path, _ = QFileDialog.getSaveFileName(
-                self,
-                "Сохранить документ",
-                filename,
-                "Все файлы (*);;PDF (*.pdf);;Документы (*.doc *.docx);;Таблицы (*.xls *.xlsx)"
-            )
-
-            if not save_path:
-                return
-
-            file_data = self.api.download_document(doc_id)
-
-            if not file_data:
-                raise Exception("Пустые данные файла")
-
-            with open(save_path, "wb") as f:
-                f.write(file_data)
-
-            self.log_event(f"Документ ID {doc_id} скачан и сохранён в {save_path}")
-            self.show_notification("Документ успешно скачан")
-        except Exception as e:
-            self.show_error(f"Ошибка скачивания документа: {str(e)}")
-
-    def verify_document(self):
-        if not self.current_doc:
-            self.show_error("Выберите документ для проверки")
-            return
-
-        try:
-            doc_id = self.current_doc.get("id")
-            result = self.api.verify_document_integrity(doc_id)
-
-            if result.get("integrity_verified", False):
-                self.show_notification("Целостность документа подтверждена")
-                self.log_event(f"Целостность документа ID {doc_id} подтверждена")
-            else:
-                self.show_error("Целостность документа нарушена")
-                self.log_event(f"Целостность документа ID {doc_id} нарушена")
-        except APIError as e:
-            self.show_error(f"Ошибка проверки целостности: {e.message}")
-
-    def delete_document(self):
-        if not self.current_doc:
-            self.show_error("Выберите документ для удаления")
-            return
-
-        confirm = QMessageBox.question(
-            self,
-            "Подтверждение удаления",
-            f"Вы действительно хотите удалить документ '{self.current_doc.get('title')}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-
-        if confirm != QMessageBox.StandardButton.Yes:
-            return
-
-        try:
-            doc_id = self.current_doc.get("id")
-            self.api.delete_document(doc_id)
-            self.load_documents()
-            self.log_event(f"Документ ID {doc_id} удалён")
-            self.show_notification("Документ успешно удалён")
-        except APIError as e:
-            self.show_error(f"Ошибка удаления документа: {e.message}")
-
-    def save_metadata(self):
-        if not self.current_doc:
-            self.show_error("Выберите документ для редактирования")
-            return
-
-        try:
-            doc_id = self.current_doc.get("id")
-            metadata = {
-                "title": self.meta_title.text(),
-                "description": self.meta_description.toPlainText()
-            }
-
-            self.api.update_document_metadata(doc_id, metadata)
-            self.load_documents()
-            self.log_event(f"Метаданные документа ID {doc_id} обновлены")
-            self.show_notification("Метаданные документа успешно сохранены")
-        except APIError as e:
-            self.show_error(f"Ошибка обновления метаданных: {e.message}")
 
     # --- Методы для работы с журналом действий ---
     def load_action_log(self):
@@ -579,20 +572,3 @@ class DashboardWindow(QMainWindow):
 
     def show_notification(self, message):
         QMessageBox.information(self, "Информация", message)
-
-    def _handle_response(self, response):
-        try:
-            response.raise_for_status()
-            # Пытаемся обработать как JSON только если есть содержимое
-            if response.content:
-                return response.json()
-            return {}
-        except requests.exceptions.HTTPError as e:
-            # Обрабатываем случай, когда ответ не в JSON формате
-            try:
-                error_msg = response.json().get("detail", str(e))
-            except json.JSONDecodeError:
-                error_msg = response.text or str(e)
-            raise APIError(error_msg, response.status_code)
-        except Exception as e:
-            raise APIError(str(e))
