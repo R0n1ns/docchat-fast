@@ -133,3 +133,5 @@ class APIClient:
             return response.status_code == 200
         except (RequestException, ConnectionError):
             return False
+    def update_base_url(self,server_url):
+        self.base_url = server_url
