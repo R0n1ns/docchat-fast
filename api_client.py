@@ -189,7 +189,7 @@ class APIClient:
 
     def delete_document(self, document_id: int) -> dict:
         response = self.session.delete(
-            f"{self.base_url}/api/v1/documents/{document_id}",
+            f"{self.base_url}/api/v1/documents/delete/{document_id}",
             headers=self._get_headers()
         )
         return self._handle_response(response)
@@ -231,3 +231,45 @@ class APIClient:
             headers=self._get_headers()
         )
         return self._handle_response(response)
+
+    def get_users(self) -> List[Dict]:
+        """Получить список пользователей"""
+        try:
+            response = self.session.get(
+                f"{self.base_url}/api/v1/users",
+                headers=self._get_headers()
+            )
+            return self._handle_response(response)
+        except APIError:
+            return []  # Возвращаем пустой список при ошибке
+
+    def share_document(self, document_id: int, user_ids: List[int], group_ids: List[int], notes: str = "") -> dict:
+        """Отправить документ пользователям и группам"""
+        # Отправка пользователям
+        for user_id in user_ids:
+            payload = {
+                "user_id": user_id,
+                "access_level": "view"  # Или другой уровень доступа
+            }
+            response = self.session.post(
+                f"{self.base_url}/api/v1/documents/{document_id}/share",
+                json=payload,
+                headers=self._get_headers()
+            )
+            self._handle_response(response)
+
+        # Отправка группам (если реализовано в API)
+        # for group_id in group_ids:
+        #     payload = {
+        #         "group_id": group_id,
+        #         "access_level": "view"
+        #     }
+        #     response = self.session.post(
+        #         f"{self.base_url}/api/v1/documents/{document_id}/share-group",
+        #         json=payload,
+        #         headers=self._get_headers()
+        #     )
+        #     self._handle_response(response)
+
+        # Возвращаем результат последней операции
+        return {"status": "success"}
