@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QInputDialog, QHeaderView, QDialog, QDialogButtonBox, QListWidgetItem, QListWidget
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QColor
 
 from api_client import APIError
 from widgets.document_view import DocumentViewWindow
@@ -21,7 +21,8 @@ class DashboardWindow(QMainWindow):
         super().__init__()
         self.api = api
         self.user_data = user_data
-        print(user_data)
+        self.is_admin = user_data.get('role') == 'admin'  # Проверяем роль пользователя
+        # print(user_data)
         self.init_ui()
         self.load_documents()
         self.init_timers()
@@ -140,12 +141,87 @@ class DashboardWindow(QMainWindow):
         # self.tabs.addTab(self.tab_log, "Журнал действий")
         # self.init_log_tab()
 
+        # --- Вкладка Пользователи (только для админа) ---
+        if self.is_admin:
+            self.tab_users = QWidget()
+            self.tabs.addTab(self.tab_users, "Пользователи")
+            self.init_users_tab()
+
+            self.tab_groups = QWidget()
+            self.tabs.addTab(self.tab_groups, "Группы")
+            self.init_groups_tab()
         # --- Вкладка Настройки ---
         self.tab_settings = QWidget()
         self.tabs.addTab(self.tab_settings, "Настройки")
         self.init_settings_tab()
 
         self.setCentralWidget(central_widget)
+
+    def init_users_tab(self):
+        layout = QVBoxLayout(self.tab_users)
+
+        # Панель инструментов
+        toolbar_layout = QHBoxLayout()
+
+        self.user_search = QLineEdit()
+        self.user_search.setPlaceholderText("Поиск пользователей...")
+        self.user_search.textChanged.connect(self.filter_users)
+        toolbar_layout.addWidget(self.user_search)
+
+        refresh_btn = QPushButton("Обновить")
+        refresh_btn.clicked.connect(self.load_users)
+        toolbar_layout.addWidget(refresh_btn)
+
+        add_user_btn = QPushButton("Добавить пользователя")
+        add_user_btn.clicked.connect(self.add_user_dialog)
+        toolbar_layout.addWidget(add_user_btn)
+
+        layout.addLayout(toolbar_layout)
+
+        # Таблица пользователей
+        self.users_table = QTableWidget()
+        self.users_table.setColumnCount(7)  # Увеличили количество столбцов
+        self.users_table.setHorizontalHeaderLabels([
+            "ID", "ФИО", "Email", "Должность", "Роль", "Статус", "Действия"
+        ])
+        self.users_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.users_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        layout.addWidget(self.users_table)
+
+        self.load_users()
+
+    def init_groups_tab(self):
+        layout = QVBoxLayout(self.tab_groups)
+
+        # Панель инструментов
+        toolbar_layout = QHBoxLayout()
+
+        self.group_search = QLineEdit()
+        self.group_search.setPlaceholderText("Поиск групп...")
+        self.group_search.textChanged.connect(self.filter_groups)
+        toolbar_layout.addWidget(self.group_search)
+
+        refresh_btn = QPushButton("Обновить")
+        refresh_btn.clicked.connect(self.load_groups)
+        toolbar_layout.addWidget(refresh_btn)
+
+        add_group_btn = QPushButton("Добавить группу")
+        add_group_btn.clicked.connect(self.add_group_dialog)
+        toolbar_layout.addWidget(add_group_btn)
+
+        layout.addLayout(toolbar_layout)
+
+        # Таблица групп
+        self.groups_table = QTableWidget()
+        self.groups_table.setColumnCount(5)
+        self.groups_table.setHorizontalHeaderLabels([
+            "ID", "Название", "Руководитель", "Участников", "Действия"
+        ])
+        self.groups_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.groups_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        layout.addWidget(self.groups_table)
+
+        self.load_groups()
 
     def init_documents_tab(self):
         layout = QVBoxLayout(self.tab_documents)
@@ -400,3 +476,388 @@ class DashboardWindow(QMainWindow):
 
     def show_notification(self, message):
         QMessageBox.information(self, "Информация", message)
+        # === Методы для работы с пользователями ===
+
+    def load_users(self):
+        try:
+            self.users = self.api.get_users()
+            self.filtered_users = self.users
+            self.display_users(self.users)
+        except APIError as e:
+            self.show_error(f"Ошибка загрузки пользователей: {e.message}")
+
+    def display_users(self, users):
+        self.users_table.setRowCount(len(users))
+        for i, user in enumerate(users):
+            self.users_table.setItem(i, 0, QTableWidgetItem(str(user.get("id", ""))))
+            self.users_table.setItem(i, 1, QTableWidgetItem(user.get("full_name", "")))
+            self.users_table.setItem(i, 2, QTableWidgetItem(user.get("email", "")))
+            self.users_table.setItem(i, 3, QTableWidgetItem(user.get("job_title", "")))
+            self.users_table.setItem(i, 4, QTableWidgetItem(user.get("role", "")))
+
+            # Статус пользователя
+            status_item = QTableWidgetItem()
+            status_item.setData(Qt.ItemDataRole.DisplayRole,
+                                "Активен" if user.get("is_active", True) else "Заблокирован")
+            status_item.setForeground(QColor("green") if user.get("is_active", True) else QColor("red"))
+            self.users_table.setItem(i, 5, status_item)
+
+            # Кнопки действий
+            btn_layout = QHBoxLayout()
+            btn_layout.setContentsMargins(5, 2, 5, 2)
+            btn_layout.setSpacing(5)
+
+            # Кнопка блокировки/разблокировки
+            toggle_btn = QPushButton("Заблокировать" if user.get("is_active", True) else "Разблокировать")
+            toggle_btn.setProperty("user_id", user["id"])
+            toggle_btn.setProperty("current_status", user.get("is_active", True))
+            toggle_btn.setStyleSheet(
+                "background-color: #e67e22;" if user.get("is_active", True) else "background-color: #27ae60;")
+            toggle_btn.clicked.connect(self.toggle_user_status)
+            btn_layout.addWidget(toggle_btn)
+
+            # Кнопка редактирования
+            edit_btn = QPushButton("Редактировать")
+            edit_btn.setProperty("user_id", user["id"])
+            edit_btn.setStyleSheet("background-color: #3498db;")
+            edit_btn.clicked.connect(self.edit_user_dialog)
+            btn_layout.addWidget(edit_btn)
+
+            # Кнопка удаления
+            delete_btn = QPushButton("Удалить")
+            delete_btn.setProperty("user_id", user["id"])
+            delete_btn.setStyleSheet("background-color: #e74c3c;")
+            delete_btn.clicked.connect(self.delete_user)
+            btn_layout.addWidget(delete_btn)
+
+            widget = QWidget()
+            widget.setLayout(btn_layout)
+            self.users_table.setCellWidget(i, 6, widget)
+
+        self.users_table.resizeColumnsToContents()
+        self.users_table.setColumnWidth(6, 300)  # Фиксируем ширину столбца с кнопками
+
+    def toggle_user_status(self):
+        btn = self.sender()
+        user_id = btn.property("user_id")
+        current_status = btn.property("current_status")
+
+        user = next((u for u in self.users if u["id"] == user_id), None)
+        if not user:
+            return
+
+        new_status = not current_status
+        action = "разблокировать" if new_status else "заблокировать"
+
+        reply = QMessageBox.question(
+            self,
+            "Подтверждение",
+            f"Вы уверены, что хотите {action} пользователя {user.get('full_name', '')}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # Обновляем статус пользователя через API
+                self.api.update_user(
+                    user_id=user_id,
+                    is_active=new_status
+                )
+
+                # Обновляем кнопку и статус в таблице
+                btn.setText("Заблокировать" if new_status else "Разблокировать")
+                btn.setProperty("current_status", new_status)
+                btn.setStyleSheet("background-color: #e67e22;" if new_status else "background-color: #27ae60;")
+
+                # Обновляем статус в таблице
+                row = self.find_table_row_by_user_id(user_id)
+                if row >= 0:
+                    status_item = self.users_table.item(row, 5)
+                    status_item.setText("Активен" if new_status else "Заблокирован")
+                    status_item.setForeground(QColor("green") if new_status else QColor("red"))
+
+                self.show_notification(f"Статус пользователя успешно изменен")
+            except APIError as e:
+                self.show_error(f"Ошибка изменения статуса: {e.message}")
+
+    def find_table_row_by_user_id(self, user_id):
+        for row in range(self.users_table.rowCount()):
+            if int(self.users_table.item(row, 0).text()) == user_id:
+                return row
+        return -1
+    def filter_users(self):
+        text = self.user_search.text().lower()
+        filtered = [user for user in self.users
+                    if text in str(user.get("id", "")).lower()
+                    or text in user.get("full_name", "").lower()
+                    or text in user.get("email", "").lower()
+                    or text in user.get("job_title", "").lower()]
+        self.filtered_users = filtered
+        self.display_users(filtered)
+
+    def add_user_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Добавить пользователя")
+        layout = QFormLayout(dialog)
+
+        email_edit = QLineEdit()
+        full_name_edit = QLineEdit()
+        password_edit = QLineEdit()
+        password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        role_combo = QComboBox()
+        role_combo.addItems(["user", "admin"])
+
+        layout.addRow("Email:", email_edit)
+        layout.addRow("ФИО:", full_name_edit)
+        layout.addRow("Пароль:", password_edit)
+        layout.addRow("Роль:", role_combo)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.api.create_user(
+                    email=email_edit.text(),
+                    password=password_edit.text(),
+                    role=role_combo.currentText(),
+                    full_name=full_name_edit.text()
+                )
+                self.load_users()
+                self.show_notification("Пользователь успешно создан")
+            except APIError as e:
+                self.show_error(f"Ошибка создания пользователя: {e.message}")
+
+    def edit_user_dialog(self):
+        user_id = self.sender().property("user_id")
+        user = next((u for u in self.users if u["id"] == user_id), None)
+
+        if not user:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Редактировать пользователя")
+        dialog.setMinimumWidth(400)
+        layout = QFormLayout(dialog)
+
+        email_edit = QLineEdit(user.get("email", ""))
+        full_name_edit = QLineEdit(user.get("full_name", ""))
+        job_title_edit = QLineEdit(user.get("job_title", ""))
+
+        role_combo = QComboBox()
+        role_combo.addItems(["user", "admin"])
+        role_combo.setCurrentText(user.get("role", "user"))
+
+        status_combo = QComboBox()
+        status_combo.addItems(["Активен", "Заблокирован"])
+        status_combo.setCurrentIndex(0 if user.get("is_active", True) else 1)
+
+        layout.addRow("Email:", email_edit)
+        layout.addRow("ФИО:", full_name_edit)
+        layout.addRow("Должность:", job_title_edit)
+        layout.addRow("Роль:", role_combo)
+        layout.addRow("Статус:", status_combo)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self.api.update_user(
+                    user_id=user_id,
+                    email=email_edit.text(),
+                    full_name=full_name_edit.text(),
+                    job_title=job_title_edit.text(),
+                    role=role_combo.currentText(),
+                    is_active=(status_combo.currentIndex() == 0)
+                )
+                self.load_users()
+                self.show_notification("Данные пользователя обновлены")
+            except APIError as e:
+                self.show_error(f"Ошибка обновления пользователя: {e.message}")
+
+    def delete_user(self):
+        user_id = self.sender().property("user_id")
+        user = next((u for u in self.users if u["id"] == user_id), None)
+
+        if not user:
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Подтверждение удаления",
+            f"Вы уверены, что хотите удалить пользователя {user.get('full_name', '')}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                self.api.delete_user(user_id)
+                self.load_users()
+                self.show_notification("Пользователь удален")
+            except APIError as e:
+                self.show_error(f"Ошибка удаления пользователя: {e.message}")
+
+        # === Методы для работы с группами ===
+
+    def load_groups(self):
+        try:
+            # Предположим, что у нас есть метод get_groups в API
+            self.groups = self.api.get_groups()  # Этот метод нужно реализовать в api_client.py
+            self.filtered_groups = self.groups
+            self.display_groups(self.groups)
+        except APIError as e:
+            self.show_error(f"Ошибка загрузки групп: {e.message}")
+
+    def display_groups(self, groups):
+        self.groups_table.setRowCount(len(groups))
+        for i, group in enumerate(groups):
+            self.groups_table.setItem(i, 0, QTableWidgetItem(str(group.get("id", ""))))
+            self.groups_table.setItem(i, 1, QTableWidgetItem(group.get("name", "")))
+            self.groups_table.setItem(i, 2, QTableWidgetItem(group.get("leader_name", "")))
+            self.groups_table.setItem(i, 3, QTableWidgetItem(str(len(group.get("members", [])))))
+
+            # Кнопки действий
+            btn_layout = QHBoxLayout()
+
+            edit_btn = QPushButton("Редактировать")
+            edit_btn.setProperty("group_id", group["id"])
+            edit_btn.clicked.connect(self.edit_group_dialog)
+            btn_layout.addWidget(edit_btn)
+
+            delete_btn = QPushButton("Удалить")
+            delete_btn.setProperty("group_id", group["id"])
+            delete_btn.clicked.connect(self.delete_group)
+            btn_layout.addWidget(delete_btn)
+
+            widget = QWidget()
+            widget.setLayout(btn_layout)
+            self.groups_table.setCellWidget(i, 4, widget)
+
+        self.groups_table.resizeColumnsToContents()
+
+    def filter_groups(self):
+        text = self.group_search.text().lower()
+        filtered = [group for group in self.groups
+                    if text in str(group.get("id", "")).lower()
+                    or text in group.get("name", "").lower()
+                    or text in group.get("leader_name", "").lower()]
+        self.filtered_groups = filtered
+        self.display_groups(filtered)
+
+    def add_group_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Добавить группу")
+        layout = QFormLayout(dialog)
+
+        name_edit = QLineEdit()
+        leader_combo = QComboBox()
+
+        # Заполняем комбобокс пользователями
+        try:
+            users = self.api.get_users()
+            for user in users:
+                leader_combo.addItem(user.get("full_name", ""), user["id"])
+        except APIError as e:
+            self.show_error(f"Ошибка загрузки пользователей: {e.message}")
+
+        layout.addRow("Название группы:", name_edit)
+        layout.addRow("Руководитель:", leader_combo)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                # Предположим, что у нас есть метод create_group в API
+                self.api.create_group(
+                    name=name_edit.text(),
+                    leader_id=leader_combo.currentData()
+                )
+                self.load_groups()
+                self.show_notification("Группа успешно создана")
+            except APIError as e:
+                self.show_error(f"Ошибка создания группы: {e.message}")
+
+    def edit_group_dialog(self):
+        group_id = self.sender().property("group_id")
+        group = next((g for g in self.groups if g["id"] == group_id), None)
+
+        if not group:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Редактировать группу")
+        layout = QFormLayout(dialog)
+
+        name_edit = QLineEdit(group.get("name", ""))
+        leader_combo = QComboBox()
+
+        # Заполняем комбобокс пользователями
+        try:
+            users = self.api.get_users()
+            current_leader = group.get("leader_id")
+            for user in users:
+                leader_combo.addItem(user.get("full_name", ""), user["id"])
+                if user["id"] == current_leader:
+                    leader_combo.setCurrentIndex(leader_combo.count() - 1)
+        except APIError as e:
+            self.show_error(f"Ошибка загрузки пользователей: {e.message}")
+
+        layout.addRow("Название группы:", name_edit)
+        layout.addRow("Руководитель:", leader_combo)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                # Предположим, что у нас есть метод update_group в API
+                self.api.update_group(
+                    group_id=group_id,
+                    name=name_edit.text(),
+                    leader_id=leader_combo.currentData()
+                )
+                self.load_groups()
+                self.show_notification("Данные группы обновлены")
+            except APIError as e:
+                self.show_error(f"Ошибка обновления группы: {e.message}")
+
+    def delete_group(self):
+        group_id = self.sender().property("group_id")
+        group = next((g for g in self.groups if g["id"] == group_id), None)
+
+        if not group:
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Подтверждение удаления",
+            f"Вы уверены, что хотите удалить группу {group.get('name', '')}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # Предположим, что у нас есть метод delete_group в API
+                self.api.delete_group(group_id)
+                self.load_groups()
+                self.show_notification("Группа удалена")
+            except APIError as e:
+                self.show_error(f"Ошибка удаления группы: {e.message}")

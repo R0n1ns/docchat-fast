@@ -273,3 +273,49 @@ class APIClient:
 
         # Возвращаем результат последней операции
         return {"status": "success"}
+
+    def get_groups(self) -> List[Dict]:
+        """Получить список групп"""
+        try:
+            response = self.session.get(
+                f"{self.base_url}/api/v1/groups",
+                headers=self._get_headers()
+            )
+            return self._handle_response(response)
+        except APIError:
+            return []
+
+    def create_group(self, name: str, leader_id: int) -> Dict:
+        """Создать новую группу"""
+        group_data = {
+            "name": name,
+            "leader_id": leader_id
+        }
+        response = self.session.post(
+            f"{self.base_url}/api/v1/groups",
+            json=group_data,
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)
+
+    def update_user(self, user_id: int, **kwargs) -> Dict:
+        """Обновить данные пользователя"""
+        # Формируем данные для обновления
+        user_data = {}
+        if "email" in kwargs:
+            user_data["email"] = kwargs["email"]
+        if "full_name" in kwargs:
+            user_data["full_name"] = kwargs["full_name"]
+        if "job_title" in kwargs:
+            user_data["job_title"] = kwargs["job_title"]
+        if "role" in kwargs:
+            user_data["role"] = kwargs["role"]
+        if "is_active" in kwargs:
+            user_data["is_active"] = kwargs["is_active"]
+
+        response = self.session.patch(
+            f"{self.base_url}/api/v1/users/{user_id}",
+            json=user_data,
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)
