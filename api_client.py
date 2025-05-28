@@ -117,15 +117,15 @@ class APIClient:
         )
         return self._handle_response(response)
 
-    def upload_document(self, file_path: str, title: str) -> Dict:
-        with open(file_path, 'rb') as f:
-            files = {'file': (title, f)}
-            response = self.session.post(
-                f"{self.base_url}/api/v1/documents?title={title}",
-                files=files,
-                headers={"Authorization": f"Bearer {self.access_token}"}
-            )
-        return self._handle_response(response)
+    # def upload_document(self, file_path: str, title: str) -> Dict:
+    #     with open(file_path, 'rb') as f:
+    #         files = {'file': (title, f)}
+    #         response = self.session.post(
+    #             f"{self.base_url}/api/v1/documents?title={title}",
+    #             files=files,
+    #             headers={"Authorization": f"Bearer {self.access_token}"}
+    #         )
+    #     return self._handle_response(response)
 
     def check_health(self) -> bool:
         try:
@@ -202,3 +202,32 @@ class APIClient:
                 headers=self._get_headers()
             )
             self._handle_response(response)
+
+    def upload_new_version(self, document_id: int, file_path: str) -> dict:
+        # Определяем MIME-тип файла
+        content_type, _ = mimetypes.guess_type(file_path)
+        if content_type is None:
+            content_type = 'application/octet-stream'
+
+        # Получаем имя файла из пути
+        filename = os.path.basename(file_path)
+
+        with open(file_path, 'rb') as f:
+            files = {'file': (filename, f, content_type)}
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Accept": "application/json"
+            }
+            response = self.session.post(
+                f"{self.base_url}/api/v1/documents/{document_id}/upload",
+                files=files,
+                headers=headers
+            )
+        return self._handle_response(response)
+
+    def get_document(self, document_id: int) -> dict:
+        response = self.session.get(
+            f"{self.base_url}/api/v1/documents/{document_id}",
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)

@@ -194,6 +194,7 @@ class DashboardWindow(QMainWindow):
         super().__init__()
         self.api = api
         self.user_data = user_data
+        print(user_data)
         self.init_ui()
         self.load_documents()
         self.init_timers()
@@ -308,9 +309,9 @@ class DashboardWindow(QMainWindow):
         self.init_documents_tab()
 
         # --- Вкладка Журнал действий ---
-        self.tab_log = QWidget()
-        self.tabs.addTab(self.tab_log, "Журнал действий")
-        self.init_log_tab()
+        # self.tab_log = QWidget()
+        # self.tabs.addTab(self.tab_log, "Журнал действий")
+        # self.init_log_tab()
 
         # --- Вкладка Настройки ---
         self.tab_settings = QWidget()
@@ -360,12 +361,12 @@ class DashboardWindow(QMainWindow):
 
         layout.addLayout(buttons_layout)
 
-    def init_log_tab(self):
-        layout = QVBoxLayout(self.tab_log)
-        self.log_text = QTextEdit()
-        self.log_text.setReadOnly(True)
-        layout.addWidget(self.log_text)
-        self.load_action_log()
+    # def init_log_tab(self):
+    #     layout = QVBoxLayout(self.tab_log)
+    #     self.log_text = QTextEdit()
+    #     self.log_text.setReadOnly(True)
+    #     layout.addWidget(self.log_text)
+    #     self.load_action_log()
 
     def init_settings_tab(self):
         layout = QVBoxLayout(self.tab_settings)
@@ -399,7 +400,7 @@ class DashboardWindow(QMainWindow):
 
         self.sync_timer = QTimer()
         self.sync_timer.setInterval(5 * 60 * 1000)  # 5 минут
-        self.sync_timer.timeout.connect(self.sync_offline_changes)
+        # self.sync_timer.timeout.connect(self.sync_offline_changes)
         self.sync_timer.start()
 
     # --- Методы для работы с документами ---
@@ -408,7 +409,7 @@ class DashboardWindow(QMainWindow):
             self.documents = self.api.get_documents()
             self.filtered_documents = self.documents
             self.display_documents(self.documents)
-            self.log_event("Список документов обновлен")
+            # self.log_event("Список документов обновлен")
         except APIError as e:
             self.show_error(f"Ошибка загрузки документов: {e.message}")
 
@@ -488,7 +489,7 @@ class DashboardWindow(QMainWindow):
         try:
             self.api.upload_document(file_path, title)
             self.load_documents()
-            self.log_event(f"Документ '{title}' успешно загружен")
+            # self.log_event(f"Документ '{title}' успешно загружен")
             self.show_notification("Документ успешно загружен")
         except APIError as e:
             # Добавляем более информативное сообщение
@@ -497,31 +498,31 @@ class DashboardWindow(QMainWindow):
                 error_msg += "\n(Серверная ошибка, проверьте логи сервера)"
             self.show_error(error_msg)
 
-    # --- Методы для работы с журналом действий ---
-    def load_action_log(self):
-        try:
-            # В реальном приложении здесь будет запрос к API
-            # self.action_log = self.api.get_action_log()
-            self.action_log = [
-                "2023-05-15 09:30:15 | Пользователь вошел в систему",
-                "2023-05-15 10:15:22 | Загружен новый документ: Отчет за апрель",
-                "2023-05-15 11:40:05 | Скачан документ: Договор №123"
-            ]
-            self.update_log_text()
-        except Exception as e:
-            self.action_log = [f"Ошибка загрузки журнала: {str(e)}"]
-            self.update_log_text()
+    # # --- Методы для работы с журналом действий ---
+    # def load_action_log(self):
+    #     try:
+    #         # В реальном приложении здесь будет запрос к API
+    #         # self.action_log = self.api.get_action_log()
+    #         self.action_log = [
+    #             "2023-05-15 09:30:15 | Пользователь вошел в систему",
+    #             "2023-05-15 10:15:22 | Загружен новый документ: Отчет за апрель",
+    #             "2023-05-15 11:40:05 | Скачан документ: Договор №123"
+    #         ]
+    #         self.update_log_text()
+    #     except Exception as e:
+    #         self.action_log = [f"Ошибка загрузки журнала: {str(e)}"]
+    #         self.update_log_text()
 
-    def log_event(self, message: str):
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        full_message = f"[{timestamp}] {message}"
-        self.action_log.append(full_message)
-        self.update_log_text()
+    # def log_event(self, message: str):
+    #     from datetime import datetime
+    #     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     full_message = f"[{timestamp}] {message}"
+    #     self.action_log.append(full_message)
+    #     self.update_log_text()
 
-    def update_log_text(self):
-        self.log_text.clear()
-        self.log_text.append("\n".join(self.action_log[-50:]))  # Показываем последние 50 записей
+    # def update_log_text(self):
+    #     self.log_text.clear()
+    #     self.log_text.append("\n".join(self.action_log[-50:]))  # Показываем последние 50 записей
 
     # --- Методы для работы с настройками ---
     def browse_cert_file(self):
@@ -548,7 +549,7 @@ class DashboardWindow(QMainWindow):
         # Обновляем API клиент
         self.api.base_url = api_url
 
-        self.log_event("Настройки приложения сохранены")
+        # self.log_event("Настройки приложения сохранены")
         self.show_notification("Настройки успешно сохранены")
 
     def handle_logout(self):
@@ -558,13 +559,13 @@ class DashboardWindow(QMainWindow):
         except Exception:
             pass
 
-        self.log_event("Пользователь был автоматически выведен из системы из-за бездействия")
+        # self.log_event("Пользователь был автоматически выведен из системы из-за бездействия")
         self.show_notification("Время сессии истекло. Пожалуйста, войдите снова.")
         self.close()
 
-    def sync_offline_changes(self):
-        if self.sync_checkbox.isChecked():
-            self.log_event("Офлайн изменения синхронизированы с сервером")
+    # def sync_offline_changes(self):
+    #     if self.sync_checkbox.isChecked():
+    #         self.log_event("Офлайн изменения синхронизированы с сервером")
 
     # --- Вспомогательные методы ---
     def show_error(self, message):
