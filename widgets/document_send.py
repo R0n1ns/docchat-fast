@@ -2,82 +2,126 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QListWidget, QTextEdit,
     QPushButton, QLabel, QHBoxLayout, QListWidgetItem,
-    QMessageBox
+    QMessageBox, QDialog, QGroupBox
 )
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from api_client import APIError
 
 
-class DocumentSendWindow(QWidget):
-    def __init__(self, api, doc_id):
-        super().__init__()
+class DocumentSendDialog(QDialog):
+    def __init__(self, api, document_id, parent=None):
+        super().__init__(parent)
         self.api = api
-        self.doc_id = doc_id
+        self.document_id = document_id
+        self.setWindowTitle("Отправить документ")
+        self.setGeometry(400, 400, 600, 500)
         self.init_ui()
-        self.load_data()
+        self.load_users_and_groups()
 
     def init_ui(self):
-        self.setWindowTitle("Send Document")
-        self.setFixedSize(800, 600)
-        self.setStyleSheet("background-color: #f4f6f9;")
-
         layout = QVBoxLayout()
 
-        title = QLabel("Select Recipients and Add a Message")
-        title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50; margin-bottom: 15px;")
+        # Заголовок
+        title = QLabel("Выберите получателей для этого документа")
+        title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         layout.addWidget(title)
 
-        self.recipient_list = QListWidget()
-        self.recipient_list.setStyleSheet("background-color: white; border-radius: 8px;")
-        layout.addWidget(self.recipient_list)
+        # Пользователи
+        users_group = QGroupBox("Отправить пользователям")
+        users_layout = QVBoxLayout()
+        self.users_list = QListWidget()
+        self.users_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        users_layout.addWidget(self.users_list)
+        users_group.setLayout(users_layout)
+        layout.addWidget(users_group)
 
-        self.message_box = QTextEdit()
-        self.message_box.setPlaceholderText("Enter optional message here...")
-        self.message_box.setStyleSheet("background-color: white; border-radius: 8px; padding: 10px;")
-        layout.addWidget(self.message_box)
+        # Группы
+        groups_group = QGroupBox("Отправить группам")
+        groups_layout = QVBoxLayout()
+        self.groups_list = QListWidget()
+        self.groups_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        groups_layout.addWidget(self.groups_list)
+        groups_group.setLayout(groups_layout)
+        layout.addWidget(groups_group)
 
-        self.send_btn = QPushButton("Send Document")
-        self.send_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #005BAC;
-                color: white;
-                padding: 10px;
-                font-weight: bold;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #004080;
-            }
-        """)
-        self.send_btn.clicked.connect(self.send_document)
+        # Заметки
+        notes_group = QGroupBox("Заметки (необязательно)")
+        notes_layout = QVBoxLayout()
+        self.notes_edit = QTextEdit()
+        self.notes_edit.setMaximumHeight(100)
+        notes_layout.addWidget(self.notes_edit)
+        notes_group.setLayout(notes_layout)
+        layout.addWidget(notes_group)
 
-        layout.addWidget(self.send_btn)
+        # Кнопки
+        buttons_layout = QHBoxLayout()
+        back_btn = QPushButton("Назад")
+        back_btn.clicked.connect(self.reject)
+        buttons_layout.addWidget(back_btn)
+
+        send_btn = QPushButton("Отправить документ")
+        send_btn.setIcon(QIcon.fromTheme("mail-send"))
+        send_btn.clicked.connect(self.send_document)
+        buttons_layout.addWidget(send_btn)
+
+        layout.addLayout(buttons_layout)
+
         self.setLayout(layout)
 
-    def load_data(self):
+    def load_users_and_groups(self):
         try:
-            recipients = self.api.get_users()
-            for user in recipients:
-                item = QListWidgetItem(f"{user['name']} ({user['email']})")
+            # Загрузка пользователей
+            users = self.api.get_users()
+            for user in users:
+                display_text = f"{user.get('full_name', '')} ({user.get('email', '')})"
+                item = QListWidgetItem(display_text)
                 item.setData(Qt.ItemDataRole.UserRole, user["id"])
-                item.setCheckState(Qt.CheckState.Unchecked)
-                self.recipient_list.addItem(item)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
+                self.users_list.addItem(item)
+
+            # Загрузка групп (если доступно в API)
+            # groups = self.api.get_groups()
+            # for group in groups:
+            #     item = QListWidgetItem(group["name"])
+            #     item.setData(Qt.ItemDataRole.UserRole, group["id"])
+            #     self.groups_list.addItem(item)
+
+            # Если группы не реализованы, скрываем секцию
+            if self.groups_list.count() == 0:
+                self.groups_list.parent().setVisible(False)
+
+        except APIError as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {e.message}")
 
     def send_document(self):
-        selected = []
-        for i in range(self.recipient_list.count()):
-            item = self.recipient_list.item(i)
-            if item.checkState() == Qt.CheckState.Checked:
-                selected.append(item.data(Qt.ItemDataRole.UserRole))
+        # Собираем выбранных пользователей
+        selected_users = []
+        for item in self.users_list.selectedItems():
+            user_id = item.data(Qt.ItemDataRole.UserRole)
+            selected_users.append(user_id)
 
-        message = self.message_box.toPlainText()
+        # Собираем выбранные группы
+        selected_groups = []
+        for item in self.groups_list.selectedItems():
+            group_id = item.data(Qt.ItemDataRole.UserRole)
+            selected_groups.append(group_id)
+
+        notes = self.notes_edit.toPlainText()
+
+        if not selected_users and not selected_groups:
+            QMessageBox.warning(self, "Ошибка", "Выберите хотя бы одного получателя")
+            return
 
         try:
-            self.api.send_document(self.doc_id, selected, message)
-            QMessageBox.information(self, "Success", "Document sent successfully!")
-            self.close()
+            # Отправка документа
+            self.api.share_document(
+                self.document_id,
+                selected_users,
+                selected_groups,
+                notes
+            )
+
+            QMessageBox.information(self, "Успех", "Документ успешно отправлен")
+            self.accept()
         except APIError as e:
-            QMessageBox.critical(self, "Send Failed", str(e))
+            QMessageBox.critical(self, "Ошибка", f"Ошибка отправки документа: {e.message}")
+
