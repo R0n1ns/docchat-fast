@@ -223,7 +223,7 @@ async def upload_new_version(
     )
     return document
 
-@router.delete("/{document_id}", response_model=DocumentInDB)
+@router.delete("/delete/{document_id}", response_model=DocumentInDB)
 async def delete_document(
     *,
     db: AsyncSession = Depends(get_db),

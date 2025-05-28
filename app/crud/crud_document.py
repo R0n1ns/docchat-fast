@@ -63,10 +63,10 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         """
         Add a new version to an existing document.
         """
-        # Get document
-        document = await self.get(db, id=document_id)
+        document = await self.get_active(db, id=document_id)
         if not document:
             return None
+
         
         # Get latest version number
         result = await db.execute(
@@ -112,6 +112,9 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         """
         Get a document with all its versions.
         """
+        document = await self.get_active(db, id=document_id)
+        if not document:
+            return None
         # Get document
         result = await db.execute(select(Document).filter(Document.id == document_id))
         document = result.scalars().first()
@@ -140,6 +143,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         """
         Get a specific document version.
         """
+
         result = await db.execute(select(DocumentVersion).filter(DocumentVersion.id == version_id))
         return result.scalars().first()
     
@@ -156,6 +160,7 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         Search for documents based on filters.
         """
         query = select(Document).filter(
+            Document.is_deleted == False,  # Фильтр удалённых
             or_(
                 Document.creator_id == user_id,
                 Document.id.in_(
@@ -183,25 +188,30 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         
         result = await db.execute(query)
         return result.scalars().all()
-    
+
+    async def get_active(self, db: AsyncSession, *, id: int) -> Optional[Document]:
+        """Получить неудалённый документ по ID."""
+        result = await db.execute(
+            select(Document)
+            .filter(Document.id == id, Document.is_deleted == False)
+        )
+        return result.scalars().first()
+
     async def mark_as_deleted(
-        self,
-        db: AsyncSession,
-        *,
-        document_id: int
+            self,
+            db: AsyncSession,
+            *,
+            document_id: int
     ) -> Optional[Document]:
-        """
-        Mark a document as deleted (soft delete).
-        """
-        document = await self.get(db, id=document_id)
+        # Изменено: помечаем только активные документы
+        document = await self.get_active(db, id=document_id)
         if not document:
             return None
-        
+
         document.is_deleted = True
         db.add(document)
         await db.commit()
         await db.refresh(document)
         return document
-
 
 document_crud = CRUDDocument(Document)

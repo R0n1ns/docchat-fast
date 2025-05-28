@@ -853,7 +853,8 @@
             }
           }
         }
-      },
+      }},
+      "/api/v1/documents/delete/{document_id}": {
       "delete": {
         "tags": [
           "documents"
