@@ -23,6 +23,7 @@ class Document(Base):
     creator = relationship("User", back_populates="documents")
     versions = relationship("DocumentVersion", back_populates="document")
     access_list = relationship("DocumentAccess", back_populates="document")
+    shared_groups = relationship("UserGroup", secondary="document_access", back_populates="accessible_documents")
 
 
 class DocumentVersion(Base):
@@ -57,3 +58,5 @@ class DocumentAccess(Base):
     document = relationship("Document", back_populates="access_list")
     user = relationship("User")
 
+    group_id = Column(Integer, ForeignKey("user_groups.id"), nullable=True)
+    group = relationship("UserGroup")

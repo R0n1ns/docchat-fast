@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
 from app.models.document import Document, DocumentVersion, DocumentAccess
+from app.models.group import UserGroupMember
 from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentListFilter, DocumentVersionCreate
 
 
@@ -146,26 +147,30 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
 
         result = await db.execute(select(DocumentVersion).filter(DocumentVersion.id == version_id))
         return result.scalars().first()
-    
+
     async def search_documents(
-        self,
-        db: AsyncSession,
-        *,
-        filters: DocumentListFilter,
-        user_id: int,
-        skip: int = 0,
-        limit: int = 100
+            self,
+            db: AsyncSession,
+            *,
+            filters: DocumentListFilter,
+            user_id: int,
+            skip: int = 0,
+            limit: int = 100
     ) -> List[Document]:
-        """
-        Search for documents based on filters.
-        """
+        # Получаем группы пользователя
+        user_groups = select(UserGroupMember.group_id).where(UserGroupMember.user_id == user_id)
+
         query = select(Document).filter(
-            Document.is_deleted == False,  # Фильтр удалённых
+            Document.is_deleted == False,
             or_(
                 Document.creator_id == user_id,
                 Document.id.in_(
-                    select(DocumentAccess.document_id)
-                    .where(DocumentAccess.user_id == user_id)
+                    select(DocumentAccess.document_id).where(
+                        or_(
+                            DocumentAccess.user_id == user_id,
+                            DocumentAccess.group_id.in_(user_groups)
+                        )
+                    )
                 )
             )
         )
@@ -213,5 +218,39 @@ class CRUDDocument(CRUDBase[Document, DocumentCreate, DocumentUpdate]):
         await db.commit()
         await db.refresh(document)
         return document
+
+    async def grant_group_access(
+            self,
+            db: AsyncSession,
+            document_id: int,
+            group_id: int,
+            access_level: str = 'read'
+    ) -> DocumentAccess:
+        access = DocumentAccess(
+            document_id=document_id,
+            group_id=group_id,
+            access_level=access_level
+        )
+        db.add(access)
+        await db.commit()
+        return access
+
+    async def revoke_group_access(
+            self,
+            db: AsyncSession,
+            document_id: int,
+            group_id: int
+    ) -> bool:
+        result = await db.execute(
+            select(DocumentAccess)
+            .filter(DocumentAccess.document_id == document_id)
+            .filter(DocumentAccess.group_id == group_id)
+        )
+        access = result.scalars().first()
+        if access:
+            await db.delete(access)
+            await db.commit()
+            return True
+        return False
 
 document_crud = CRUDDocument(Document)

@@ -12,6 +12,7 @@ from app.crud.crud_document_access import document_access_crud
 from app.models.user import User
 from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentInDB, DocumentListFilter, DocumentAccessCreate, \
     DocumentAccessInDB
+from app.schemas.group import DocumentGroupAccessCreate, DocumentGroupAccessInDB
 from app.services.document import create_document, get_document_by_id, update_document, remove_document, search_documents, verify_document_integrity
 from app.services.minio import get_document_file
 
@@ -329,3 +330,104 @@ async def get_my_accessible_documents(
         db, user_id=current_user.id
     )
     return accessible_documents
+
+
+@router.post("/{document_id}/share_group", response_model=DocumentGroupAccessInDB)
+async def share_with_group(
+        *,
+        db: AsyncSession = Depends(get_db),
+        document_id: int,
+        access_in: DocumentGroupAccessCreate,
+        current_user: User = Depends(get_current_active_user),
+):
+    """
+    Share document with a user group
+    """
+    document = await document_crud.get_active(db, id=document_id)
+    if not document or document.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only document owner can share with groups"
+        )
+
+    # # Проверяем, есть ли у пользователя право на управление группами
+    # if not current_user.can_modify_groups:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Insufficient permissions for group management"
+    #     )
+
+    access = await document_access_crud.grant_access(
+        db,
+        document_id=document_id,
+        group_id=access_in.group_id,
+        access_level=access_in.access_level
+    )
+    return access
+
+
+@router.delete("/{document_id}/share_group/{group_id}")
+async def revoke_group_access(
+        *,
+        db: AsyncSession = Depends(get_db),
+        document_id: int,
+        group_id: int,
+        current_user: User = Depends(get_current_active_user),
+):
+    """
+    Revoke group access to a document
+    """
+    document = await document_crud.get_active(db, id=document_id)
+    if not document or document.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only document owner can revoke group access"
+        )
+
+    # Проверяем, есть ли у пользователя право на управление группами
+    # if not current_user.can_modify_groups:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Insufficient permissions for group management"
+    #     )
+
+    success = await document_access_crud.revoke_access(
+        db,
+        document_id=document_id,
+        group_id=group_id
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group access not found"
+        )
+
+    return {"status": "Group access revoked successfully"}
+
+
+@router.get("/{document_id}/access_list", response_model=List[DocumentAccessInDB])
+async def get_document_access_list(
+        *,
+        db: AsyncSession = Depends(get_db),
+        document_id: int,
+        current_user: User = Depends(get_current_active_user),
+):
+    """
+    Get access list for a document
+    """
+    document = await document_crud.get_active(db, id=document_id)
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    # Только владелец или админ может просматривать список доступа
+    if document.creator_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only document owner or admin can view access list"
+        )
+
+    return await document_access_crud.get_document_access(db, document_id=document_id)
